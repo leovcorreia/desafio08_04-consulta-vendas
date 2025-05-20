@@ -1,24 +1,21 @@
 package com.devsuperior.dsmeta.services;
 
-import java.text.SimpleDateFormat;
+import com.devsuperior.dsmeta.dto.SaleMinDTO;
+import com.devsuperior.dsmeta.dto.SaleReportDTO;
+import com.devsuperior.dsmeta.dto.SaleSummaryDTO;
+import com.devsuperior.dsmeta.entities.Sale;
+import com.devsuperior.dsmeta.projections.SaleSummaryProjection;
+import com.devsuperior.dsmeta.repositories.SaleRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.Locale;
 import java.util.Optional;
-
-import com.devsuperior.dsmeta.dto.SaleReportDTO;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.expression.ParseException;
-import org.springframework.stereotype.Service;
-
-import com.devsuperior.dsmeta.dto.SaleMinDTO;
-import com.devsuperior.dsmeta.entities.Sale;
-import com.devsuperior.dsmeta.repositories.SaleRepository;
 
 @Service
 public class SaleService {
@@ -40,24 +37,15 @@ public class SaleService {
 		// Data atual
 		LocalDate today = LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault());
 
-		if (maxDateString == null || maxDateString.trim().isEmpty()) {
-		// data final não informada (pegar a data atual)
+		if ((maxDateString == null) || (maxDateString.trim().isEmpty())) {
 			maxDate = today;
 		} else {
-		// data final informada
 			maxDate = convertStringToDate(maxDateString, pattern);
 		}
 
-		if (minDateString == null || minDateString.trim().isEmpty()) {
-			if (maxDateString == null || maxDateString.trim().isEmpty()) {
-			// data inicial não informada, 	data final também não informada (pegar a atual)
-				minDate = today.minusYears(1L);
-			} else {
-			// data inicial não informada, mas data final foi informada
-				minDate = maxDate.minusYears(1L);
-			}
+		if ((minDateString == null) || minDateString.trim().isEmpty()) {
+			minDate = maxDate.minusYears(1L);
 		} else {
-		// data inicial informada
 			minDate = convertStringToDate(minDateString, pattern);
 		}
 
@@ -66,6 +54,32 @@ public class SaleService {
 		}
 
 		Page<SaleReportDTO> result = repository.searchReport(minDate, maxDate, name, pageable);
+		return result;
+	}
+
+	public Page<SaleSummaryDTO> summary(String minDateString, String maxDateString, Pageable pageable) {
+
+		LocalDate minDate, maxDate;
+		String pattern = "yyyy-MM-dd";
+
+		// Data atual
+		LocalDate today = LocalDate.ofInstant(Instant.now(), ZoneId.systemDefault());
+
+		if ((maxDateString == null) || (maxDateString.trim().isEmpty())) {
+			maxDate = today;
+		} else {
+			maxDate = convertStringToDate(maxDateString, pattern);
+		}
+
+		if ((minDateString == null) || minDateString.trim().isEmpty()) {
+			minDate = maxDate.minusYears(1L);
+		} else {
+			minDate = convertStringToDate(minDateString, pattern);
+		}
+
+		Page<SaleSummaryProjection> page = repository.searchSummary(minDate, maxDate, pageable);
+		Page<SaleSummaryDTO> result = page.map(x -> new SaleSummaryDTO(x));
+
 		return result;
 	}
 
